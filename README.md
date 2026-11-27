@@ -15,7 +15,7 @@ Repairing what the reports confirmed shortened both tasks retested so far. Both 
 | Take four orders from pallets to a departed truck | 137 gestures (the one valid run) | 79 and 85 gestures |
 | Set up a new customer and its delivery point | 111 and 96 gestures | 81 and 89 gestures |
 
-A gesture is a click, a typed text, a key or a scroll. `scripts/analyze_transcript.py` counts them from the participant's session transcript. The transcripts and the reports stay private, because they show the application. The two tasks used different browser drivers, the tools through which the participant sees and clicks, so compare the numbers only within a row.
+A gesture is a click, a typed text, a key, a scroll, a drag or a hover. `scripts/analyze_transcript.py` counts them from the participant's session transcript. The transcripts and the reports stay private, because they show the application. The two tasks used different browser drivers, the tools through which the participant sees and clicks, so compare the numbers only within a row.
 
 In the second task the repairs targeted one step, which fell from 28 and 19 gestures to 10 and 7. The other two steps showed no clear change: their differences stayed inside the 15-gesture spread between the two baseline participants. In the first report, five of the participant's complaints came from its own perception or from the limits of the test setup. The check against code and data removed them from the repair list.
 
