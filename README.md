@@ -4,6 +4,8 @@
 
 An agent skill for Claude Code that tests how hard your web app is for a new employee. A participant agent that has never seen the app gets a note "from the boss" and does the job with only the screen, the mouse and the keyboard. You moderate, and the report shows where the participant got lost: gestures per step, and each of its complaints checked against your code and data.
 
+![Bar chart of the gestures needed for the same task: 137 before the repairs, then 79 and 85 for two new participants after the repairs](.github/social-card.png)
+
 ## Results
 
 Repairing what the reports confirmed shortened both tasks retested so far. Both tests ran on an internal logistics app of a window and door manufacturer: the first one produced the method, and the second one was run with the skill. In each test a participant did one end-to-end task, the developer repaired what the report confirmed, and new participants repeated the task from the same database snapshot. A third test, on a month-end report in the same company's ERP, has had its first two runs; its repairs are still to be made.
