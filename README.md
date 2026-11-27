@@ -8,7 +8,7 @@ An agent skill for Claude Code that tests how hard your web app is for a new emp
 
 ## Results
 
-Repairing what the reports confirmed shortened both tasks retested so far. Both tests ran on an internal logistics app of a window and door manufacturer: the first one produced the method, and the second one was run with the skill. In each test a participant did one end-to-end task, the developer repaired what the report confirmed, and new participants repeated the task from the same database snapshot. A third test, on a month-end report in the same company's ERP, has had its first two runs; its repairs are still to be made.
+Repairing what the reports confirmed shortened both tasks retested so far. Both tests ran on an internal logistics app of a window and door manufacturer: the first one produced the method, and the second one was run with the skill. In each test a participant did one end-to-end task, the developer repaired what the report confirmed, and new participants repeated the task from the same database snapshot. A third test, on a month-end report in the ERP that the logistics app takes its orders from, has had its first two runs; its repairs are still to be made.
 
 | Task | Before the repairs | After the repairs |
 |---|---|---|
