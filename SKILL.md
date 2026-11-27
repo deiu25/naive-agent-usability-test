@@ -6,7 +6,7 @@ metadata:
   version: "1.0.0"
   author: "Andrei Badulescu and contributors"
   source: "https://github.com/deiu25/naive-agent-usability-test"
-  requires: "binary:python>=3.9"
+  requires: "binary:python>=3.10"
   core_max_lines: "111"
 ---
 

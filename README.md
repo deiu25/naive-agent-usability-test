@@ -40,7 +40,7 @@ The skill refuses to run a participant on production, whoever asks. A participan
 - Claude Code. The participant is a Claude Code subagent, and the counting script reads Claude Code transcripts.
 - A browser driver: Claude in Chrome, or agent-browser. `references/drivers.md` describes what each one lets the participant see.
 - An isolated copy of the app and its data. Without it the skill stops after the steps that write nothing.
-- Python 3.9 or newer for the counting script, which uses only the standard library.
+- Python 3.10 or newer for the counting script, which uses only the standard library.
 
 Before a participant runs, the skill also needs two facts from you: whose job the participant imitates, and what leaves the app, such as email, SMS and calls to external APIs.
 
@@ -101,7 +101,7 @@ The evidence so far comes from two flows of one application (PHP and SQL Server)
 
 ## Evaluation and maintenance
 
-[evals/](evals/README.md) holds the three scenarios of the controlled comparison, their fixtures and their assertions. CI runs the script's self-test on Python 3.9 and 3.12, checks that the Skills CLI finds the skill, and validates the plugin manifests.
+[evals/](evals/README.md) holds the three scenarios of the controlled comparison, their fixtures and their assertions. CI runs the script's self-test on Python 3.10 and 3.15, checks that the Skills CLI finds the skill, and validates the plugin manifests.
 
 The skill changes after real runs. When a run shows a rule that is missing or wrong, the moderator notes it at that step, and a review folds the notes into the skill. [task-observer](https://github.com/rebelytics/one-skill-to-rule-them-all) automates that capture and review, and a benchmark such as the one in `evals/` shows whether a change helped.
 
