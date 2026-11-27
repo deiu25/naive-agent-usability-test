@@ -14,6 +14,9 @@ a {role}, with only the screen, the mouse and the keyboard.
 The test ran on an isolated copy of the application, with the data from {source, date}. {Production was
 only read.}
 
+Use, in brief ({the step 1 file}): {two or three lines: who uses the flow, how often, what waits on it;
+why the test aims here}.
+
 ## What each step cost
 
 | Step | Gestures | Where they went |

@@ -1,7 +1,7 @@
 {
   "name": "naive-agent-usability-test",
   "description": "Usability test in which a context-free agent does a new employee's job in a web app, moderated and checked against code and data.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": {
     "name": "Andrei Badulescu",
     "url": "https://github.com/deiu25"

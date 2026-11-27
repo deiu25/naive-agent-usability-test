@@ -51,7 +51,8 @@ another driver, replace them with its section of references/drivers.md; the othe
 - A person does not see what is below the edge of the screen until they scroll. Neither do you.
 - If a new tab opens, find it with `tabs_context_mcp` and work in it. A tab the application opened that you
   no longer need (a PDF, for example) you may close with `tabs_close_mcp`. Do not close the main tab.
-- You download no files and press no export buttons.
+- You press export buttons only for the files the note asks for, and download nothing else. You cannot
+  open a downloaded file: write which button you pressed and what you saw on the screen.
 - Limits of the tool, which are not the application's and are not noted as problems:
   - the browser's dropdown lists do not show open in screenshots: choose from them with the keyboard
     (letters and arrow keys);
@@ -77,6 +78,10 @@ Mark it in capitals, at the start of the line, when it applies:
 - `SURPRISE` - something else happened than I expected;
 - `UNCLEAR` - a word, a label or a number I do not understand;
 - `HELP` - I opened the application's help (say also whether it helped).
+
+{Only when the driver's gestures carry no element name (references/drivers.md, section 4):} When you start
+a step of the note, first write, on a line of its own, `START STEP N` (N = the step's number in the note);
+when you go back to a step, write its line again.
 
 At the first sight of each new screen write `FIRST IMPRESSION:` in 1-2 sentences: what you think the screen
 does, before pressing anything. Also save a screenshot to disk (`save_to_disk: true`) at each new screen and

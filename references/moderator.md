@@ -17,7 +17,7 @@ Steps 6-9 of the loop in `SKILL.md`.
 ## 1. Counting
 
 ```bash
-python -I -X utf8 <skill dir>/scripts/analyze_transcript.py [--driver agent-browser] \
+python -I -X utf8 <skill dir>/scripts/analyze_transcript.py [--driver agent-browser|agent-browser-mouse] \
     --step "1=<regex>" --step "2=<regex>" --help-open "<regex>" --help-close "<regex>" \
     <transcript.jsonl> <run folder>
 ```
@@ -36,8 +36,16 @@ the patterns.
   a button); the step starts at the first gesture on it, and a gesture on an earlier step's element takes
   the count back there. Write each as `--step NAME=REGEX` on the `label` column: the participant's own
   description of the click with Claude in Chrome, the element's name from the last annotated screenshot
-  with agent-browser. The participant's step summaries are a fallback only when they carry timestamps: a
-  participant that writes its log at the end leaves none.
+  with agent-browser. On coordinates (`--driver agent-browser-mouse`) gestures carry no element name, so
+  plan on time boundaries: run the script once without a split, read the first gesture of each step off
+  `actions.csv` by time and point (the click on the step's first element), and give each as
+  `--step-from NAME=HH:MM:SS` (its UTC time column). The `START STEP N` line the brief asks for
+  (`--step-text "START STEP (\d+)"`) saves that work only when the participant writes it as it goes; in
+  the first coordinate runs both participants wrote it in their final report alone. Help is counted by
+  hand there, from the journal lines that name the help. The participant's step summaries are a fallback
+  only when they carry timestamps: a participant that writes its log at the end leaves none.
+- **Exports**: a file the ticket asks for is graded by its request in the rig's router log (the export
+  action and its filters), never by the participant's word; the participant cannot open the file.
 - **Help is its own column.** Actions spent reading in-app help are counted apart from actions spent
   searching on screen. Name the help's open and close elements before the runs too (`--help-open`,
   `--help-close`; an Escape key also closes); the script counts help per step, inside the step totals,
@@ -84,9 +92,15 @@ the two runs' totals is the size of the noise; say it next to any comparison.
 ## 5. The report
 
 Fill `templates/report.md`. Its order matters: the plain story (what the task was, did they finish, where
-they got stuck, in sentences a manager reads) before any table; then cost per step; then the places
-where a new person gets lost, in the order of the flow, each with its evidence and "what would help";
-then what went well; then what the test does not show.
+they got stuck, in sentences a manager reads) before any table; then the use measured in step 1, in a
+few lines that say which flow the test aims at and why, its queries and tables left in the step 1 file
+(the reader came for what the test found); then cost per step; then the places where a new person gets
+lost, in the order of the flow, each with its evidence and "what would help"; then what went well; then
+what the test does not show.
+
+Your own sentences get the check the participant's claims get: a number, a duration or a "correct" in the
+report carries its source (the router log line, the query, `file:line`), and a sentence with none is
+checked or cut before the hand-over.
 
 ## 6. Retest
 
@@ -114,3 +128,10 @@ The agent's numbers predict; people's use confirms. A few weeks after the last d
 working default), rerun the step 1 queries on production, read-only, and compare per step and per person
 with the first measure. Why the real users avoid a flow is not in any transcript: the report says so
 and leaves that question to the person who asked for the test.
+
+**When the access log cannot tell who or which step.** Offices often reach the server through one
+address, and a single-page screen sends every action to one endpoint with the action in the request
+body, which the log does not record. Then the log gives volume only (page opens, requests per day), and
+the sources in order are: the rows each step writes, with user and date (a history table, a status
+column); the rights tables, for who may; the records waiting for a step, for what its absence costs. The
+usage lines say which of who, which step and how often stayed unanswered.

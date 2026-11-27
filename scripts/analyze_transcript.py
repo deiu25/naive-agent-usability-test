@@ -1,18 +1,31 @@
 """Count what a usability-test participant did, from its Claude Code transcript (JSONL).
 
-Usage:  python -I -X utf8 analyze_transcript.py [--driver agent-browser] [--step NAME=REGEX ...]
-            [--help-open REGEX] [--help-close REGEX] <transcript.jsonl> <run folder>
+Usage:  python -I -X utf8 analyze_transcript.py [--driver agent-browser|agent-browser-mouse]
+            [--step NAME=REGEX ...] [--step-text REGEX] [--help-open REGEX] [--help-close REGEX]
+            <transcript.jsonl> <run folder>
         python -I -X utf8 analyze_transcript.py --selftest
 
-The default driver is Claude in Chrome. With --driver agent-browser, each allowed agent-browser call is
-counted as the same gesture or look (references/drivers.md); its other tools stay forbidden.
+The default driver is Claude in Chrome. With --driver agent-browser (annotated screenshots) or
+--driver agent-browser-mouse (coordinates: MCP profiles core,mobile), each allowed agent-browser call is
+counted as the same gesture or look (references/drivers.md); its other tools stay forbidden. On
+coordinates a click is mouse_move + mouse_down + mouse_up and counts once, a drag (a move while the button
+is down) counts once, and a mouse_move followed by anything but mouse_down is a hover.
 
 Every gesture gets a label: with Claude in Chrome the participant's own description of the action, with
-agent-browser the name the last annotated screenshot gave the element (plus the key or the typed text).
-The labels are what the step and help options match, case-insensitive:
+annotated agent-browser the name the last annotated screenshot gave the element (plus the key or the typed
+text), on coordinates the point, key or text. The labels are what the step and help options match,
+case-insensitive:
   --step NAME=REGEX  repeat once per step, in the flow's order. A gesture whose label matches a step's
                      REGEX starts that step, or re-enters it, and counts to it; the first --step that
                      matches wins. Gestures before any match count to "start".
+  --step-text REGEX  instead of --step, when gestures carry no element name: a line of the participant's
+                     own text matching REGEX starts (or re-enters) the step its first group names, e.g.
+                     "START STEP (\\d+)", which the brief asks it to write before each ticket step.
+  --step-from NAME=HH:MM:SS  repeat once per step, in order: the gestures from that time (the transcript's
+                     UTC time column of actions.csv) belong to NAME. The fallback when the participant wrote
+                     its markers only in the final report: read the first gesture of each step off a first
+                     run without a split, by time and point. Only one of --step, --step-text, --step-from.
+                     A time earlier than the one before it is the next day's: a run may cross midnight.
   --help-open REGEX  a gesture matching it opens a help stretch; --help-close REGEX or an Escape key
                      closes it. Both ends count as help. Help is counted per step, inside the step totals.
 
@@ -31,7 +44,7 @@ import re
 import sys
 import tempfile
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timedelta
 
 ALLOWED = {
     "mcp__claude-in-chrome__computer",
@@ -53,15 +66,51 @@ AGENT_BROWSER = {
     "tab_list": ("mcp__claude-in-chrome__tabs_context_mcp", ""),
     "tab_close": ("mcp__claude-in-chrome__tabs_close_mcp", ""),
 }
+# agent-browser on coordinates: the same model, plus the pointer calls. "part" = a piece of a gesture
+# counted elsewhere (the move before a click, the move of a drag, the button release), neither doing nor looking.
+AGENT_BROWSER_MOUSE = {
+    "screenshot": (BROWSER, "screenshot"), "wait_ms": (BROWSER, "wait"),
+    "mouse_down": (BROWSER, "left_click"), "mouse_wheel": (BROWSER, "scroll"),
+    "keyboard_type": (BROWSER, "type"), "press": (BROWSER, "key"), "back": (BROWSER, "key"),
+    "tab_switch": (BROWSER, "left_click"),
+    "tab_list": ("mcp__claude-in-chrome__tabs_context_mcp", ""),
+    "tab_close": ("mcp__claude-in-chrome__tabs_close_mcp", ""),
+}
+PART = "part"
 
 
-def as_default_driver(name, inp, driver):
+def mouse_actions(uses):
+    """{index of a pointer call: action} for a coordinates run: move before a down = part, move while the
+    button is down = part and turns the click into a drag, a lone move = hover, mouse_up = part."""
+    out, down_at, pointer = {}, None, [i for i, (_, b) in enumerate(uses) if b.get("name", "").startswith(AB)]
+    for k, i in enumerate(pointer):
+        short = uses[i][1].get("name", "")[len(AB):]
+        if short == "mouse_down":
+            down_at = i
+        elif short == "mouse_up":
+            out[i], down_at = PART, None
+        elif short == "mouse_move" and down_at is not None:
+            out[i], out[down_at] = PART, "left_click_drag"
+        elif short == "mouse_move":
+            nxt = uses[pointer[k + 1]][1].get("name", "") if k + 1 < len(pointer) else ""
+            out[i] = PART if nxt == AB + "mouse_down" else "hover"
+    return out
+
+
+def as_default_driver(name, inp, driver, mouse_action=None):
     """An agent-browser call rewritten as the default driver's; anything else unchanged."""
-    if driver != "agent-browser" or not name.startswith(AB) or name[len(AB):] not in AGENT_BROWSER:
+    table = AGENT_BROWSER_MOUSE if driver == "agent-browser-mouse" else AGENT_BROWSER
+    short = name[len(AB):] if name.startswith(AB) else ""
+    if driver not in ("agent-browser", "agent-browser-mouse") or not short:
         return name, inp
-    short = name[len(AB):]
-    tool, action = AGENT_BROWSER[short]
-    summary = " ".join(str(inp.get(k, "")) for k in ("selector", "key", "text") if inp.get(k)).strip()
+    if driver == "agent-browser-mouse" and mouse_action:
+        tool, action = BROWSER, mouse_action
+    elif short in table:
+        tool, action = table[short]
+    else:
+        return name, inp
+    summary = " ".join(str(inp.get(k, "")) for k in ("selector", "x", "y", "dy", "key", "text")
+                       if inp.get(k) not in (None, "")).strip()
     return tool, {"action": action, "action_summary": f"{short} {summary}".strip()[:120]}
 
 
@@ -96,15 +145,37 @@ def blocks(line):
     return message.get("role"), content or []
 
 
-def split(actions, steps=(), help_open=None, help_close=None):
-    """Marks each gesture with its step and help flag; returns gestures and help gestures per step."""
+def day_stamps(step_from, first):
+    """--step-from times of day as "YYYY-MM-DDTHH:MM:SS" stamps: the first is the occurrence nearest the
+    run's first call, each next one the first at or after the one before it, so a run may cross midnight."""
+    out, prev = [], datetime.fromisoformat(first[:19]) if first else None
+    for k, (name, hms) in enumerate(step_from if prev else ()):
+        at = datetime.fromisoformat(f"{prev.date()}T{hms}")
+        if k == 0:
+            at = min((at + timedelta(days=d) for d in (-1, 0, 1)), key=lambda c: abs(c - prev))
+        elif at < prev:
+            at += timedelta(days=1)
+        out.append((name, at.isoformat()))
+        prev = at
+    return out
+
+
+def split(actions, steps=(), help_open=None, help_close=None, by_text=False, step_from=()):
+    """Marks each gesture with its step and help flag; returns gestures and help gestures per step.
+    by_text: the step is the one the participant's last marker line named (a["marker"]), not a label match.
+    step_from: (name, stamp) pairs from day_stamps()."""
     per_step, help_per_step = Counter(), Counter()
     step, in_help = "start", False
     for a in actions:
         if a["tool"] != BROWSER or a["action"] not in GESTURES:
             continue
         label = a["label"]
-        for name, rx in steps:
+        if by_text:
+            step = a["marker"]
+        for name, start in step_from:
+            if a["time"][:19] >= start:
+                step = name
+        for name, rx in () if by_text else steps:
             if rx.search(label):
                 step = name
                 break
@@ -120,9 +191,10 @@ def split(actions, steps=(), help_open=None, help_close=None):
     return per_step, help_per_step
 
 
-def analyze(path, folder, driver="claude-in-chrome", steps=(), help_open=None, help_close=None):
+def analyze(path, folder, driver="claude-in-chrome", steps=(), help_open=None, help_close=None, step_text=None,
+            step_from=()):
     os.makedirs(folder, exist_ok=True)
-    uses, results, texts, tool_errors = [], {}, [], 0
+    uses, results, texts, tool_errors, marker = [], {}, [], 0, "start"
     with open(path, encoding="utf-8") as f:
         for raw in f:
             raw = raw.strip()
@@ -138,20 +210,26 @@ def analyze(path, folder, driver="claude-in-chrome", steps=(), help_open=None, h
                     continue
                 if b.get("type") == "tool_use":
                     uses.append((line.get("timestamp", ""), b))
+                    b["_marker"] = marker  # the step the participant's last marker line named
                 elif b.get("type") == "tool_result":
                     results[b.get("tool_use_id")] = b.get("content")
                     if b.get("is_error"):
                         tool_errors += 1
                 elif b.get("type") == "text" and role == "assistant" and b.get("text", "").strip():
                     texts.append(b["text"].strip())
+                    for text_line in b["text"].splitlines() if step_text else ():
+                        m = step_text.search(text_line)
+                        if m:
+                            marker = m.group(1) if m.groups() else m.group(0)
 
     actions, names = [], {}
-    for time, b in uses:
+    pointer = mouse_actions(uses) if driver == "agent-browser-mouse" else {}
+    for k, (time, b) in enumerate(uses):
         raw_name, raw_inp = b.get("name", ""), b.get("input") or {}
         if raw_name == AB + "screenshot" and raw_inp.get("annotate"):
             names = annotations(results.get(b.get("id"))) or names
         label = label_of(raw_name, raw_inp, names)
-        name, inp = as_default_driver(raw_name, raw_inp, driver)
+        name, inp = as_default_driver(raw_name, raw_inp, driver, pointer.get(k))
         if name == "SubagentHandback":
             report = max((v for v in inp.values() if isinstance(v, str)), key=len, default="")
             with open(os.path.join(folder, "participant-report.md"), "w", encoding="utf-8") as r:
@@ -159,16 +237,19 @@ def analyze(path, folder, driver="claude-in-chrome", steps=(), help_open=None, h
         description = inp.get("action_summary") or ""
         if not description and inp.get("action") in ("type", "key"):
             description = str(inp.get("text") or "")[:80]
+        point = inp.get("coordinate") or ([raw_inp["x"], raw_inp["y"]] if "x" in raw_inp and "y" in raw_inp else None)
         actions.append({
             "time": time, "tool": name, "action": inp.get("action", ""),
             "description": description,
-            "coordinates": json.dumps(inp.get("coordinate")) if inp.get("coordinate") else "",
-            "saved": "yes" if inp.get("save_to_disk") else "", "label": label,
+            "coordinates": json.dumps(point) if point else "",
+            "saved": "yes" if inp.get("save_to_disk") else "", "label": label, "marker": b.get("_marker", "start"),
         })
 
-    per_step, help_per_step = split(actions, steps, help_open, help_close)
+    stamps = day_stamps(step_from, min((a["time"] for a in actions if a["time"]), default=""))
+    per_step, help_per_step = split(actions, steps, help_open, help_close, by_text=step_text is not None,
+                                    step_from=stamps)
     fields = ["time", "tool", "action", "description", "coordinates", "saved", "label"]
-    if steps or help_open:
+    if steps or help_open or step_text or step_from:
         fields += ["step", "help"]
     with open(os.path.join(folder, "actions.csv"), "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
@@ -187,14 +268,15 @@ def analyze(path, folder, driver="claude-in-chrome", steps=(), help_open=None, h
     per_tool = Counter(a["tool"] for a in actions)
     per_action = Counter(a["action"] for a in actions if a["tool"] == BROWSER)
     gestures = sum(n for a, n in per_action.items() if a in GESTURES)
-    looking = sum(n for a, n in per_action.items() if a not in GESTURES)
-    # Self-checks: every browser call is either a gesture or looking/waiting; every gesture has one step.
-    assert gestures + looking == per_tool.get(BROWSER, 0)
+    parts = per_action.get(PART, 0)
+    looking = sum(n for a, n in per_action.items() if a not in GESTURES and a != PART)
+    # Self-checks: every browser call is a gesture, a piece of one, or looking/waiting; every gesture has one step.
+    assert gestures + parts + looking == per_tool.get(BROWSER, 0)
     assert sum(per_step.values()) == gestures
     return {
         "calls": len(actions), "minutes": minutes, "tool_errors": tool_errors,
         "per_tool": dict(per_tool), "per_action": dict(per_action.most_common()),
-        "gestures": gestures, "looking": looking, "texts": len(texts),
+        "gestures": gestures, "looking": looking, "parts": parts, "texts": len(texts),
         "forbidden": {u: n for u, n in per_tool.items() if u not in ALLOWED},
         "per_step": dict(per_step), "help_per_step": dict(help_per_step),
     }
@@ -205,7 +287,8 @@ def report(r, folder, split_asked):
     print(f"tool calls: {r['calls']}; duration: {duration}; tool errors: {r['tool_errors']}")
     print("per tool:", r["per_tool"])
     print("browser actions:", r["per_action"])
-    print(f"gestures (click, type, key, scroll, drag, hover): {r['gestures']}; looking and waiting: {r['looking']}")
+    print(f"gestures (click, type, key, scroll, drag, hover): {r['gestures']}; looking and waiting: {r['looking']}"
+          + (f"; pointer calls inside a gesture: {r['parts']}" if r["parts"] else ""))
     if split_asked:
         print("gestures per step:", r["per_step"])
         print(f"help gestures per step (inside the step totals): {r['help_per_step']};"
@@ -292,11 +375,57 @@ def selftest():
     if (r["per_step"], r["help_per_step"]) != ({"start": 1, "customers": 6, "orders": 3},
                                                {"customers": 3, "orders": 2}):
         bad["steps and help"] = (r["per_step"], r["help_per_step"])
+
+    # Coordinates: click = move + down + up (1 gesture), lone move = hover, drag = move + down + move + up
+    # (1 gesture), steps from the participant's own marker lines, snapshot still forbidden.
+    mouse = [{"timestamp": "2026-01-05T09:00:00.000Z", "message": {"role": "assistant", "content": [
+        {"type": "text", "text": "START STEP 1"}, use(AB + "screenshot"),
+        use(AB + "mouse_move", x=10, y=20), use(AB + "mouse_down"), use(AB + "mouse_up"),
+        use(AB + "keyboard_type", text="Example Ltd"), use(AB + "press", key="Enter"),
+        {"type": "text", "text": "7. HELP opened the guide\nSTART STEP 2"},
+        use(AB + "mouse_move", x=5, y=5), use(AB + "screenshot"), use(AB + "mouse_wheel", dy=300),
+        use(AB + "mouse_move", x=450, y=571), use(AB + "mouse_down"), use(AB + "mouse_move", x=1250, y=571),
+        use(AB + "mouse_up"), use(AB + "snapshot")]}}]
+    with tempfile.TemporaryDirectory() as d:
+        path = os.path.join(d, "t.jsonl")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(json.dumps(mouse[0]) + "\n")
+        r = analyze(path, os.path.join(d, "run"), "agent-browser-mouse", step_text=re.compile(r"START STEP (\d+)"))
+    if (r["gestures"], r["parts"], r["looking"], r["per_step"], r["forbidden"]) != (
+            6, 5, 2, {"1": 3, "2": 3}, {AB + "snapshot": 1}):
+        bad["agent-browser-mouse"] = (r["gestures"], r["parts"], r["looking"], r["per_step"], r["forbidden"])
+    if [r["per_action"].get(a) for a in ("left_click", "left_click_drag", "hover")] != [1, 1, 1]:
+        bad["agent-browser-mouse actions"] = r["per_action"]
+
+    # Time boundaries: the first run of the default driver above, split at 09:02 (the click falls before it).
+    with tempfile.TemporaryDirectory() as d:
+        path = os.path.join(d, "t.jsonl")
+        with open(path, "w", encoding="utf-8") as f:
+            for ln in lines:
+                f.write((ln if isinstance(ln, str) else json.dumps(ln)) + "\n")
+        r = analyze(path, os.path.join(d, "run"), step_from=[("a", "09:00:00"), ("b", "09:02:00")])
+    if r["per_step"] != {"a": 1, "b": 2}:
+        bad["--step-from"] = r["per_step"]
+
+    # The same across midnight: a boundary earlier than the one before it is the next day's.
+    night = [{"timestamp": stamp, "message": {"role": "assistant", "content": [
+        use(BROWSER, action="left_click", coordinate=[1, 2])]}}
+        for stamp in ("2026-01-05T23:59:50.000Z", "2026-01-06T00:00:10.000Z")]
+    with tempfile.TemporaryDirectory() as d:
+        path = os.path.join(d, "t.jsonl")
+        with open(path, "w", encoding="utf-8") as f:
+            for ln in night:
+                f.write(json.dumps(ln) + "\n")
+        r = analyze(path, os.path.join(d, "run"), step_from=[("a", "23:59:00"), ("b", "00:00:05")])
+    if r["per_step"] != {"a": 1, "b": 1}:
+        bad["--step-from across midnight"] = r["per_step"]
     if bad:
         print("SELFTEST FAILED:", bad)
         return 1
     print("selftest ok: 8 calls, 3 gestures, 2 looking, 1 forbidden tool, 1 tool error, report extracted;"
-          " agent-browser: 3 gestures, 1 look, snapshot forbidden; steps with re-entry and help: 1/6/3, help 3/2")
+          " agent-browser: 3 gestures, 1 look, snapshot forbidden; steps with re-entry and help: 1/6/3, help 3/2;"
+          " coordinates: 6 gestures (click, drag and hover once each), steps 3/3 from marker lines;"
+          " steps from times: 1/2, and 1/1 across midnight")
     return 0
 
 
@@ -304,10 +433,10 @@ if __name__ == "__main__":
     args = sys.argv[1:]
     if args == ["--selftest"]:
         sys.exit(selftest())
-    driver, steps, opts, files = "claude-in-chrome", [], {}, []
+    driver, steps, step_from, opts, files = "claude-in-chrome", [], [], {}, []
     while args:
         a = args.pop(0)
-        if a in ("--driver", "--step", "--help-open", "--help-close"):
+        if a in ("--driver", "--step", "--step-text", "--step-from", "--help-open", "--help-close"):
             if not args:
                 sys.exit(f"{a} needs a value\n\n{__doc__}")
             v = args.pop(0)
@@ -318,11 +447,19 @@ if __name__ == "__main__":
                 if not sep or not name:
                     sys.exit(f"--step takes NAME=REGEX, got {v!r}")
                 steps.append((name, re.compile(rx, re.I)))
+            elif a == "--step-from":
+                name, sep, t = v.partition("=")
+                if not sep or not name or not re.fullmatch(r"\d\d:\d\d:\d\d", t):
+                    sys.exit(f"--step-from takes NAME=HH:MM:SS, got {v!r}")
+                step_from.append((name, t))
             else:
                 opts[a] = re.compile(v, re.I)
         else:
             files.append(a)
-    if len(files) != 2 or driver not in ("claude-in-chrome", "agent-browser"):
+    if len(files) != 2 or driver not in ("claude-in-chrome", "agent-browser", "agent-browser-mouse"):
         sys.exit(__doc__)
-    r = analyze(files[0], files[1], driver, steps, opts.get("--help-open"), opts.get("--help-close"))
-    report(r, files[1], bool(steps or opts))
+    if sum(map(bool, (steps, step_from, "--step-text" in opts))) > 1:
+        sys.exit("--step, --step-text and --step-from split the gestures different ways: give one of them")
+    r = analyze(files[0], files[1], driver, steps, opts.get("--help-open"), opts.get("--help-close"),
+                opts.get("--step-text"), step_from)
+    report(r, files[1], bool(steps or step_from or opts))

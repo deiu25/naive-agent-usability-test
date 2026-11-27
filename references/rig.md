@@ -42,10 +42,18 @@ folder as a worked example; never copy its data, accounts or passwords into a ne
 Build each item from the code path of the ticket's steps, not from the list of pages.
 
 - **App copy**: the code under test served on its own port or host, separate from the instance other
-  sessions or developers use, with its own error log you read after each run.
+  sessions or developers use, with its own error log you read after each run. Serve it through a front
+  router that runs only the flow's entry points (anything else answers 403) and writes, per request, the
+  request's parameters and the code files it loaded (PHP: `get_included_files()` at shutdown; another stack:
+  its module list). The parameters are how an export is graded (its filters) and the files are the flow's
+  code path: intersect them with a search of the copied code for production hosts, addresses, linked-server
+  names and mail servers; hits inside are cut, hits outside are off the path by evidence, not by page name.
+  Intersect again after each run: a participant reaches code the dry run did not load.
 - **Data copy**: from production, read-only on the production side, with phones, emails and other
   personal data replaced: every screenshot the participant takes goes to the model provider. Enough
-  history for the task (the screens the participant passes show it).
+  history for the task (the screens the participant passes show it). Run its database with production's
+  time zone and compare the two clocks once: a container on UTC stamps every save hours off, and the
+  participant reads that stamp.
 - **Upstream systems**: for every step, list what its button reads outside the app's own database (an
   ERP, a warehouse system, a nightly import, master data). Copy those records for the ticket's items or
   stub them. A local copy whose upstream tables lack columns the current code reads fails at the first
@@ -53,13 +61,23 @@ Build each item from the code path of the ticket's steps, not from the list of p
 - **Outbound cut by construction**: mail server pointed at a closed local port, SMS and API keys
   removed or pointed at a sink, official number series replaced by a test series. Prove each cut in the
   dry run: trigger it once and see it fail or land in the sink.
-- **Accounts**: one test account with the rights row of the real operator the test imitates. Its
-  password exists only in the copy; a real account's password never goes into a brief.
-- **Sample**: the ticket's real records, moved into the near future in the copy only (dates, status), so
-  they look like work still to do. Pick them so the flow's rules are exercised: two variants of the
-  usual case and one awkward item. For a task that creates a record (a new customer, a new price list),
-  take a real configured one, save its values as the answer key, and delete it and its children from the
-  copy only; the key then grades what the participant enters.
+- **Browser-side outbound**: the participant's browser fetches what the pages name, so search the served
+  pages and static files for absolute URLs to production hosts (an icon, a logo, a link). Rewrite them in
+  the router's responses and, where the driver allows it, restrict the browser to the rig's host
+  (`references/drivers.md`); prove it once with a harmless outside host, never with production.
+- **Accounts**: one test account with the rights row of the real operator the test imitates, copied
+  from every table the menu and the flow read, not only the flow's own. With several real operators, copy
+  the one who has every right the ticket needs and the fewest rights outside the flow, and name the other
+  in the report; "never admin" means never more than that operator has, whatever the account type is
+  called. Its password exists only in the copy; a real account's password never goes into a brief.
+- **Sample**: the ticket's real records. For to-do work, move them into the near future in the copy only
+  (dates, status), so they look like work still to do; for period-close, reporting or audit work keep the
+  real dates, take the copy close to the runs and include the months before the period: the filters and
+  the derived columns follow the dates, and in a copy that starts with the period a filter left open toward
+  the past returns the right rows by accident. Pick them so the flow's rules are exercised: two variants of
+  the usual case and one awkward item. For a task that creates a record (a new customer, a new price
+  list), take a real configured one, save its values as the answer key, and delete it and its children
+  from the copy only; the key then grades what the participant enters.
 - **Snapshot and reset**: a backup taken after setup, a reset script that restores it, and a verify-run
   query that lists, against the snapshot: the ticket's records; every other record the test account
   touched (must be zero); new documents and their numbers; messages queued or sent. Each test names its
@@ -82,7 +100,9 @@ Start from `templates/brief.md` and fill every slot:
   sentence copied whole. A single trade word that is also part of a label (invoice, batch, shift,
   customer) stays when the persona's trade uses it, and is listed in the run folder with that reason: on
   a setup screen the fields are named after the rules, so a note in business words cannot reach zero.
-- **House rules**: only the ticket's records; no messages to anyone; any in-app help allowed.
+- **House rules**: only the ticket's records; no messages to anyone; any in-app help allowed; exports only
+  for the files the ticket asks for. When the deliverable is a file, the participant cannot open it: it
+  writes which button it pressed, and the moderator grades the export by its request in the router's log.
 - **Tools**: only the screenshot, mouse and keyboard tool and the tab list, named exactly; every other
   tool forbidden by name; the host's own rules (notes vault, memory, observation logs, other browsers)
   declared off for this participant, because the person who asked wants a participant with no context.
@@ -104,7 +124,8 @@ Before the first participant, with the participant's account, in the rig:
 2. At each step watch the app's error log and the network panel: an error the participant would meet is
    a rig defect until proven to be the app's.
 3. Trigger each outbound effect once and confirm it was cut.
-4. Run the verify-run query, then the reset script, then the verify-run query again: it must show the
+4. Read the timestamps of every row the dry run wrote against the clock you saw.
+5. Run the verify-run query, then the reset script, then the verify-run query again: it must show the
    snapshot state.
 
 The dry run may use an isolated automation browser (it keeps the participant's browser free and reaches

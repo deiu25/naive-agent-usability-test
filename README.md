@@ -6,7 +6,7 @@ An agent skill for Claude Code that tests how hard your web app is for a new emp
 
 ## Results
 
-Repairing what the reports confirmed shortened both tasks tested so far. Both tests ran on an internal logistics app of a window and door manufacturer: the first one produced the method, and the second one was run with the skill. In each test a participant did one end-to-end task, the developer repaired what the report confirmed, and new participants repeated the task from the same database snapshot.
+Repairing what the reports confirmed shortened both tasks retested so far. Both tests ran on an internal logistics app of a window and door manufacturer: the first one produced the method, and the second one was run with the skill. In each test a participant did one end-to-end task, the developer repaired what the report confirmed, and new participants repeated the task from the same database snapshot. A third test, on a month-end report in the same company's ERP, has had its first two runs; its repairs are still to be made.
 
 | Task | Before the repairs | After the repairs |
 |---|---|---|
@@ -38,7 +38,7 @@ The skill refuses to run a participant on production, whoever asks. A participan
 ## Requirements
 
 - Claude Code. The participant is a Claude Code subagent, and the counting script reads Claude Code transcripts.
-- A browser driver: Claude in Chrome, or agent-browser. `references/drivers.md` describes what each one lets the participant see.
+- A browser driver: Claude in Chrome, or agent-browser with annotated screenshots or on coordinates. `references/drivers.md` describes what each one lets the participant see.
 - An isolated copy of the app and its data. Without it the skill stops after the steps that write nothing.
 - Python 3.10 or newer for the counting script, which uses only the standard library.
 
@@ -97,7 +97,7 @@ The participant is an agent. It reads the whole screen and is patient, so a plac
 
 The test shows where a newcomer gets stuck; why the people who already use the app avoid a flow stays outside it.
 
-The evidence so far comes from two flows of one application (PHP and SQL Server) and two browser drivers. Desktop, mobile and terminal apps are untried, and so are live sessions with a human participant.
+The evidence so far comes from three flows of two applications (both PHP and SQL Server) and two browser drivers, one of them in two variants. Desktop, mobile and terminal apps are untried, and so are live sessions with a human participant.
 
 ## Evaluation and maintenance
 

@@ -13,6 +13,9 @@
 
 Testul a rulat pe o copie izolata a aplicatiei, cu datele din {sursa, data}. {Productia a fost doar citita.}
 
+Folosirea, pe scurt ({fisierul pasului 1}): {doua-trei randuri: cine foloseste fluxul, cat de des, ce
+asteapta dupa el; de ce tinteste testul aici}.
+
 ## Cat a costat fiecare pas
 
 | Pas | Gesturi | Pe ce s-au dus |

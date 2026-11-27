@@ -48,7 +48,8 @@ driver le inlocuiesti cu sectiunea lui din references/drivers.md; restul regulil
 - Un om nu vede ce e sub marginea ecranului pana nu deruleaza. Nici tu.
 - Daca se deschide un tab nou, il gasesti cu `tabs_context_mcp` si lucrezi in el. Un tab deschis de aplicatie,
   de care nu mai ai nevoie (de exemplu un PDF), il poti inchide cu `tabs_close_mcp`. Nu inchide tabul principal.
-- Nu descarci fisiere si nu apesi butoane de export.
+- Butoanele de export le apesi doar pentru fisierele cerute in bilet; alte fisiere nu descarci. Fisierul
+  descarcat nu-l poti deschide: scrii ce buton ai apasat si ce ai vazut pe ecran.
 - Limite ale uneltei, care nu tin de aplicatie si nu se noteaza ca probleme:
   - listele derulante ale browserului nu apar desfasurate in capturi: alege din ele cu tastatura (litere si
     sageti);
@@ -74,6 +75,10 @@ Marcheaza cu majuscule, la inceputul randului, cand e cazul:
 - `SURPRIZA` - s-a intamplat altceva decat ma asteptam;
 - `NECLAR` - un cuvant, o eticheta sau o cifra pe care nu o inteleg;
 - `AJUTOR` - am deschis ajutorul din aplicatie (scrie si daca a ajutat).
+
+{Doar cand gesturile driverului n-au numele elementului (references/drivers.md, sectiunea 4):} Cand incepi
+un pas din bilet, scrii intai, pe un rand separat, `INCEP PASUL N` (N = numarul pasului din bilet); daca te
+intorci la un pas, scrii din nou randul lui.
 
 La prima vedere a fiecarui ecran nou scrii `PRIMA IMPRESIE:` in 1-2 propozitii: ce crezi ca face ecranul,
 inainte sa apesi ceva. Salveaza si o captura pe disc (`save_to_disk: true`) la fiecare ecran nou si la
