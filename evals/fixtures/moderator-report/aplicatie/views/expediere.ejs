@@ -1,0 +1,26 @@
+<div class="modal" id="formExpediere" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h2>Expediere noua</h2>
+            <button type="button" class="inchide" aria-label="Inchide">X</button>
+        </div>
+        <form id="expediere">
+            <label>Transportator
+                <select name="id_transportator">
+                    <% transportatori.forEach(function (t) { %>
+                    <option value="<%= t.id %>"><%= t.denumire %></option>
+                    <% }); %>
+                </select>
+            </label>
+            <label>Numar camion
+                <input type="text" name="nr_camion">
+            </label>
+            <label>Data livrarii
+                <input type="date" name="data_livrare">
+            </label>
+            <div id="comenziAlese"></div>
+            <button type="submit">Salveaza expedierea</button>
+            <button type="button" id="genereazaAviz">Genereaza aviz</button>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,8 @@
+Rezerva stoc
+Genereaza lista
+Expediere noua
+Genereaza aviz
+Confirma plecare
+Pregatire
+Transportatori
+Nomenclatoare

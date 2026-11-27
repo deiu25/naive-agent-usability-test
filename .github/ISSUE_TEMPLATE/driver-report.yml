@@ -1,0 +1,30 @@
+name: Driver report
+description: You ran a participant with a browser driver, or a driver version, that references/drivers.md does not describe.
+labels: ["enhancement"]
+body:
+  - type: input
+    id: driver
+    attributes:
+      label: Driver and version
+    validations:
+      required: true
+  - type: textarea
+    id: tools
+    attributes:
+      label: Allowed tools and gestures
+      description: The tool names the participant may call, and which calls count as gestures.
+    validations:
+      required: true
+  - type: textarea
+    id: artefacts
+    attributes:
+      label: What the participant sees that a person would not, and the reverse
+    validations:
+      required: true
+  - type: textarea
+    id: counting
+    attributes:
+      label: How its transcript is counted
+      description: Whether scripts/analyze_transcript.py counts it as is, and what had to change.
+    validations:
+      required: false

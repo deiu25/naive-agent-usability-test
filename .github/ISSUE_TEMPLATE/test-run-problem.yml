@@ -1,0 +1,48 @@
+name: Test run problem
+description: A run went wrong because a rule of the skill was missing, wrong or unclear.
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: step
+    attributes:
+      label: Step of the loop
+      options:
+        - 1 Measure real use
+        - 2 Build the rig
+        - 3 Write the note
+        - 4 Moderator dry run
+        - 5 Participant runs
+        - 6 Counting and database diff
+        - 7 Labelling claims
+        - 8 Report
+        - 9 Retest
+    validations:
+      required: true
+  - type: textarea
+    id: says
+    attributes:
+      label: What the skill says
+      description: Quote the rule, with its file and section, or say that no rule covers the case.
+    validations:
+      required: true
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+      description: "What the moderator or the participant did, and what it cost. Remove anything private first: no app names, accounts or screenshots of real data."
+    validations:
+      required: true
+  - type: textarea
+    id: should
+    attributes:
+      label: What the skill should say
+    validations:
+      required: true
+  - type: input
+    id: setup
+    attributes:
+      label: Setup
+      description: Claude Code version, model and browser driver.
+      placeholder: "Claude Code 2.1.325, Opus 5.5, Claude in Chrome"
+    validations:
+      required: false

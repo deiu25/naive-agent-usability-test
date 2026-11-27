@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "naive-agent-usability-test",
+  "owner": {
+    "name": "Andrei Badulescu",
+    "url": "https://github.com/deiu25"
+  },
+  "description": "Install the naive-agent usability test as a Claude plugin.",
+  "plugins": [
+    {
+      "name": "naive-agent-usability-test",
+      "source": "./",
+      "description": "Usability test in which a context-free agent does a new employee's job in a web app, moderated and checked against code and data.",
+      "license": "MIT",
+      "keywords": ["usability", "ux", "testing", "browser", "agents"]
+    }
+  ]
+}

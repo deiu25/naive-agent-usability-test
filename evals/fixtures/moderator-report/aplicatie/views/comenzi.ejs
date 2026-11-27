@@ -1,0 +1,23 @@
+<h1>Comenzi</h1>
+<form method="get" action="/comenzi" class="cautare">
+    <input type="text" name="q" value="<%= cautare %>" placeholder="Numar comanda">
+    <button type="submit">Cauta</button>
+</form>
+<table class="lista">
+    <tr><th></th><th>Numar</th><th>Client</th><th>Livrare</th><th>Stare</th><th></th></tr>
+    <% comenzi.forEach(function (c) { %>
+    <tr>
+        <td><input type="checkbox" value="<%= c.numar %>"></td>
+        <td><%= c.numar %></td>
+        <td><%= c.client %></td>
+        <td><%= c.data_livrare %></td>
+        <td><%= c.stare %></td>
+        <td>
+            <button class="rezerva" data-numar="<%= c.numar %>"
+                    title="Blocheaza stocul pentru comanda. Stocul scade in WMS abia la Confirma plecare.">
+                Rezerva stoc
+            </button>
+        </td>
+    </tr>
+    <% }); %>
+</table>

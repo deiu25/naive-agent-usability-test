@@ -1,0 +1,16 @@
+== 1. Comenzile de pe bilet (7781, 7782, 7790)
+comanda|stare|rezervat|id_expediere|modificat_de|modificat_la
+7781|rezervata|1|318|angajat.nou|2026-11-26 10:14
+7782|rezervata|1|318|angajat.nou|2026-11-26 10:15
+7790|rezervata|1|318|angajat.nou|2026-11-26 10:21
+== 2. Alte comenzi atinse de contul de test (trebuie sa fie zero)
+comanda|stare|camp_schimbat|modificat_de|modificat_la
+7795|rezervata|rezervat 0 -> 1|angajat.nou|2026-11-26 10:18
+== 3. Expedieri noi
+id|transportator|nr_camion|comenzi|creat_de
+318|Rapid Trans|CJ 10 ABC|3|angajat.nou
+== 4. Avize noi
+numar|id_expediere|creat_de|email_trimis
+AVZ-TEST-00412|318|angajat.nou|nu
+== 5. Mesaje trimise (email, SMS)
+0
